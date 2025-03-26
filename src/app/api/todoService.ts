@@ -1,9 +1,23 @@
 import apiClient from './apiClient';
 import { Todo, TodoFormData } from '../models/todo';
+interface PaginationParams {
+  page?: number;
+  size?: number;
+  sortBy?: string;
+  sortDir?: string;
+}
 
+interface PaginatedResponse<T> {
+  content: T[];
+  pageNo: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+}
 class TodoService {
-  async getAll(): Promise<Todo[]> {
-    const response = await apiClient.get('/todos');
+  async getAll(params?: PaginationParams): Promise<PaginatedResponse<Todo>> {
+    const response = await apiClient.get('/todos', { params });
     return response.data;
   }
 

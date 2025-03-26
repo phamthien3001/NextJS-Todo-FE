@@ -1,3 +1,4 @@
+// src/app/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -14,12 +15,28 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [currentTodo, setCurrentTodo] = useState<Todo | null>(null);
+  const [pagination, setPagination] = useState({
+    page: 0,
+    size: 10,
+    totalElements: 0,
+    sortBy: 'id',
+    sortDir: 'asc',
+  });
 
   const fetchTodos = async () => {
     try {
       setLoading(true);
-      const data = await todoService.getAll();
-      setTodos(data);
+      const response = await todoService.getAll({
+        page: pagination.page,
+        size: pagination.size,
+        sortBy: pagination.sortBy,
+        sortDir: pagination.sortDir,
+      });
+      setTodos(response.content);
+      setPagination(prev => ({
+        ...prev,
+        totalElements: response.totalElements,
+      }));
     } catch (err) {
       setError('Failed to fetch todos');
       console.error(err);
@@ -30,7 +47,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchTodos();
-  }, []);
+  }, [pagination.page, pagination.size, pagination.sortBy, pagination.sortDir]);
 
   const handleCreate = () => {
     setCurrentTodo(null);
@@ -84,6 +101,14 @@ export default function Home() {
     }
   };
 
+  const handlePageChange = (newPage: number, newSize: number) => {
+    setPagination(prev => ({
+      ...prev,
+      page: newPage,
+      size: newSize,
+    }));
+  };
+
   return (
     <Container maxWidth="md" sx={{ mt: 4 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
@@ -112,9 +137,13 @@ export default function Home() {
       ) : (
         <TodoList
           todos={todos}
+          totalElements={pagination.totalElements}
+          page={pagination.page}
+          size={pagination.size}
           onEdit={handleEdit}
           onDelete={handleDelete}
           onToggle={handleToggle}
+          onPageChange={handlePageChange}
         />
       )}
 
