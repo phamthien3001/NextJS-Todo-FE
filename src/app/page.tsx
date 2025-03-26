@@ -1,95 +1,129 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
+
+import { useState, useEffect } from 'react';
+import { todoService } from './api/todoService';
+import { Todo, TodoFormData } from './models/todo';
+import { Container, Typography, Button, Box, Alert, CircularProgress } from '@mui/material';
+import AddIcon from '@mui/icons-material/Add';
+import TodoList from './components/todo/TodoList';
+import TodoForm from './components/todo/TodoForm';
 
 export default function Home() {
-  return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol>
-          <li>
-            Get started by editing <code>src/app/page.tsx</code>.
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [todos, setTodos] = useState<Todo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [currentTodo, setCurrentTodo] = useState<Todo | null>(null);
 
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-            className={styles.secondary}
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className={styles.footer}>
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+  const fetchTodos = async () => {
+    try {
+      setLoading(true);
+      const data = await todoService.getAll();
+      setTodos(data);
+    } catch (err) {
+      setError('Failed to fetch todos');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTodos();
+  }, []);
+
+  const handleCreate = () => {
+    setCurrentTodo(null);
+    setFormOpen(true);
+  };
+
+  const handleEdit = (todo: Todo) => {
+    setCurrentTodo(todo);
+    setFormOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await todoService.delete(id);
+      fetchTodos();
+    } catch (err) {
+      setError('Failed to delete todo');
+      console.error(err);
+    }
+  };
+
+  const handleToggle = async (id: string, completed: boolean) => {
+    try {
+      const todo = todos.find(t => t.id === id);
+      if (todo) {
+        await todoService.update(id, {
+          title: todo.title,
+          description: todo.description,
+          completed
+        });
+        fetchTodos();
+      }
+    } catch (err) {
+      setError('Failed to update todo');
+      console.error(err);
+    }
+  };
+
+  const handleSubmit = async (data: TodoFormData) => {
+    try {
+      if (currentTodo) {
+        await todoService.update(currentTodo.id, data);
+      } else {
+        await todoService.create(data);
+      }
+      fetchTodos();
+    } catch (err) {
+      setError('Failed to save todo');
+      console.error(err);
+      throw err;
+    }
+  };
+
+  return (
+    <Container maxWidth="md" sx={{ mt: 4 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Typography variant="h4" component="h1">
+          Todo App
+        </Typography>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={handleCreate}
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+          Add Todo
+        </Button>
+      </Box>
+
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+          <CircularProgress />
+        </Box>
+      ) : (
+        <TodoList
+          todos={todos}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onToggle={handleToggle}
+        />
+      )}
+
+      <TodoForm
+        open={formOpen}
+        todo={currentTodo}
+        onClose={() => setFormOpen(false)}
+        onSubmit={handleSubmit}
+      />
+    </Container>
   );
 }
