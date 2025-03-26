@@ -1,25 +1,17 @@
-import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
-import MuiProvider from './providers/MuiProvider';
-
-const inter = Inter({ subsets: ['latin'] });
-
-export const metadata: Metadata = {
-  title: 'Todo App',
-  description: 'A simple todo application',
-};
+// src/app/layout.tsx
+import { AuthProvider } from './context/AuthContext';
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode;
+  children: React.ReactNode
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        <MuiProvider>
+      <body>
+        <AuthProvider>
           {children}
-        </MuiProvider>
+        </AuthProvider>
       </body>
     </html>
   );
